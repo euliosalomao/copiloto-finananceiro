@@ -1,0 +1,31 @@
+{
+  "name": "copiloto-financeiro",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "prisma generate && tsc",
+    "start": "node dist/server.js",
+    "check": "tsc --noEmit",
+    "test": "node --import tsx --test src/tests/*.test.ts",
+    "migrate:deploy": "prisma migrate deploy"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "@types/pg": "^8.20.0",
+    "prisma": "^7.8.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@fastify/multipart": "^10.1.1",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "csv-parse": "^7.0.2",
+    "dotenv": "^17.4.2",
+    "fastify": "^5.8.5",
+    "openai": "^7.23.0",
+    "pg": "^8.22.0",
+    "zod": "^4.4.3"
+  }
+}

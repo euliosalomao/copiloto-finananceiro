@@ -1,0 +1,255 @@
+{
+  "name": "Copiloto | Gmail Worker copy",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "=https://gmail.googleapis.com/gmail/v1/users/me/messages/{{ $json.messageId }}/attachments/{{ $json.attachmentId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gmailOAuth2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        928,
+        0
+      ],
+      "id": "a30334c7-7904-4cf7-82a8-4a262825d489",
+      "name": "downloadCSV"
+    },
+    {
+      "parameters": {
+        "jsCode": "function getAllParts(parts = []) {\n  const result = [];\n\n  for (const part of parts) {\n    result.push(part);\n\n    if (Array.isArray(part.parts)) {\n      result.push(...getAllParts(part.parts));\n    }\n  }\n\n  return result;\n}\n\nconst items = $input.all();\nconst output = [];\n\nfor (const item of items) {\n  const message = item.json;\n\n  const parts = getAllParts(\n    message.payload?.parts ?? []\n  );\n\n  for (const part of parts) {\n    const fileName = (part.filename ?? \"\").trim();\n    const mimeType = (part.mimeType ?? \"\").toLowerCase();\n\n    const isCsv =\n      fileName.toLowerCase().endsWith(\".csv\") ||\n      mimeType === \"text/csv\";\n\n    if (!isCsv) {\n      continue;\n    }\n\n    const attachmentId = part.body?.attachmentId;\n\n    if (!attachmentId) {\n      continue;\n    }\n\n    output.push({\n      json: {\n        messageId: message.id,\n        threadId: message.threadId,\n        partId: part.partId,\n\n        fileName,\n        mimeType,\n\n        attachmentId,\n        size: part.body?.size ?? null,\n      },\n    });\n  }\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        0
+      ],
+      "id": "10434cb0-4828-451c-84d9-2ac955a99f5c",
+      "name": "filterMimeType"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "data",
+        "binaryPropertyName": "csv",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1136,
+        0
+      ],
+      "id": "dc1e070d-40b2-4f9b-937d-1e94ffa9a399",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 5,
+        "filters": {
+          "readStatus": "unread",
+          "sender": "no-reply@inter.co"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "827237ba-598c-42bd-af58-5f3434398e8d",
+      "name": "Get many messages"
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('filterMimeType').item.json.messageId }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1584,
+        0
+      ],
+      "id": "736f3450-63e0-480b-864a-f130a962aba0",
+      "name": "Mark a message as read"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://copiloto_backend:3333/imports/statements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "accountId"
+            },
+            {
+              "name": "format",
+              "value": "INTER_CSV"
+            },
+            {
+              "name": "source",
+              "value": "GMAIL"
+            },
+            {
+              "name": "sourceMessageId",
+              "value": "={{ $('filterMimeType').item.json.messageId }}"
+            },
+            {
+              "name": "sourceAttachmentId",
+              "value": "={{ $('filterMimeType').item.json.attachmentId }}"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "csv"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1360,
+        0
+      ],
+      "id": "8dd04c9b-067e-4df5-8ca4-bf4682d31e0f",
+      "name": "copilotoPost"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -32,
+        0
+      ],
+      "id": "5a69d590-6abe-4670-8870-dbdaad36cb2b",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "=https://gmail.googleapis.com/gmail/v1/users/me/messages/{{ $json.id }}?format=full",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gmailOAuth2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        464,
+        0
+      ],
+      "id": "17e713d1-923d-4d55-9528-ef40d9947402",
+      "name": "fullMessage"
+    }
+  ],
+  "connections": {
+    "filterMimeType": {
+      "main": [
+        [
+          {
+            "node": "downloadCSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "downloadCSV": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "copilotoPost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "fullMessage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "copilotoPost": {
+      "main": [
+        [
+          {
+            "node": "Mark a message as read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fullMessage": {
+      "main": [
+        [
+          {
+            "node": "filterMimeType",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}

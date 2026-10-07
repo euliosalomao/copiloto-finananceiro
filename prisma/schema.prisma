@@ -1,0 +1,211 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Este schema lista somente as tabelas pertencentes ao Copiloto Financeiro.
+// O PostgreSQL de producao pode ser compartilhado com outros sistemas, mas
+// suas tabelas nao fazem parte do contrato publico deste projeto.
+
+model tenants {
+  id                          String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                        String
+  status                      String                        @default("ACTIVE")
+  created_at                  DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime                      @default(now()) @db.Timestamptz(6)
+  accounts                    accounts[]
+  categories                  categories[]
+  classification_reviews      classification_reviews[]
+  import_batches              import_batches[]
+  merchant_rules              merchant_rules[]
+  transaction_classifications transaction_classifications[]
+  transactions                transactions[]
+}
+
+model accounts {
+  id                  String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id           String           @db.Uuid
+  name                String
+  institution         String
+  account_context     String
+  account_type        String
+  currency            String           @default("BRL")
+  external_account_id String?
+  provider            String?
+  is_active           Boolean          @default(true)
+  created_at          DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime         @default(now()) @db.Timestamptz(6)
+  import_batches      import_batches[]
+  tenants             tenants          @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transactions        transactions[]
+
+  @@unique([tenant_id, name])
+  @@unique([id, tenant_id], map: "accounts_id_tenant_unique_idx")
+}
+
+model categories {
+  id                          String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id                   String                        @db.Uuid
+  name                        String
+  parent_id                   String?                       @db.Uuid
+  category_type               String
+  description                 String?
+  is_active                   Boolean                       @default(true)
+  created_at                  DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime                      @default(now()) @db.Timestamptz(6)
+  parent                      categories?                   @relation("categories_hierarchy", fields: [parent_id], references: [id], onUpdate: NoAction)
+  children                    categories[]                  @relation("categories_hierarchy")
+  tenants                     tenants                       @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  merchant_rules              merchant_rules[]
+  classification_reviews      classification_reviews[]
+  transaction_classifications transaction_classifications[]
+  transactions                transactions[]
+}
+
+model merchant_rules {
+  id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id        String      @db.Uuid
+  category_id      String?     @db.Uuid
+  pattern          String
+  match_type       String      @default("CONTAINS")
+  account_context  String      @default("ANY")
+  direction        String      @default("ANY")
+  operation_type   String      @default("ANY")
+  priority         Int         @default(100)
+  confidence_score Decimal     @default(95) @db.Decimal(5, 2)
+  active           Boolean     @default(true)
+  notes            String?
+  created_at       DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime    @default(now()) @db.Timestamptz(6)
+  categories       categories? @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+  tenants          tenants     @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([tenant_id, active], map: "merchant_rules_active_idx")
+  @@index([tenant_id, pattern], map: "merchant_rules_pattern_idx")
+  @@index([tenant_id, priority], map: "merchant_rules_priority_idx")
+  @@index([tenant_id], map: "merchant_rules_tenant_idx")
+}
+
+model import_batches {
+  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id                String    @db.Uuid
+  account_id               String    @db.Uuid
+  provider                 String
+  format                   String
+  source                   String
+  source_message_id        String?
+  source_attachment_id     String?
+  file_hash                String    @db.Char(64)
+  status                   String    @default("PROCESSING")
+  total_transactions       Int       @default(0)
+  imported_count           Int       @default(0)
+  duplicate_count          Int       @default(0)
+  possible_duplicate_count Int       @default(0)
+  failed_count             Int       @default(0)
+  error_code               String?
+  error_message            String?
+  metadata                 Json?
+  started_at               DateTime  @default(now()) @db.Timestamptz(6)
+  finished_at              DateTime? @db.Timestamptz(6)
+  created_at               DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime  @default(now()) @db.Timestamptz(6)
+  accounts                 accounts  @relation(fields: [account_id, tenant_id], references: [id, tenant_id], onDelete: Cascade, onUpdate: NoAction)
+  tenants                  tenants   @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tenant_id, source, source_message_id, source_attachment_id], map: "import_batches_source_attachment_unique_idx", where: raw("((source_message_id IS NOT NULL) AND (source_attachment_id IS NOT NULL))"))
+  @@unique([tenant_id, source, source_message_id], map: "import_batches_source_message_unique_idx", where: raw("((source_message_id IS NOT NULL) AND (source_attachment_id IS NULL))"))
+  @@unique([tenant_id, account_id, provider, format, file_hash], map: "import_batches_file_unique_idx")
+  @@index([account_id, started_at(sort: Desc)], map: "import_batches_account_started_idx")
+  @@index([tenant_id, status], map: "import_batches_tenant_status_idx")
+}
+
+model transactions {
+  id                          String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id                   String                       @db.Uuid
+  account_id                  String                       @db.Uuid
+  external_transaction_id     String?
+  provider                    String?
+  transaction_date            DateTime                     @db.Date
+  reference_month             DateTime                     @db.Date
+  description                 String
+  amount                      Decimal                      @db.Decimal(14, 2)
+  direction                   String
+  operation_type              String
+  status                      String                       @default("POSTED")
+  primary_category_id         String?                      @db.Uuid
+  project_id                  String?                      @db.Uuid
+  recurring_profile_id        String?                      @db.Uuid
+  installment_current         Int?
+  installment_total           Int?
+  related_transaction_id      String?                      @db.Uuid
+  transfer_group_id           String?                      @db.Uuid
+  is_manual                   Boolean                      @default(false)
+  ignored                     Boolean                      @default(false)
+  notes                       String?
+  raw_json                    Json?
+  created_at                  DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime                     @default(now()) @db.Timestamptz(6)
+  transaction_classifications transaction_classifications?
+  accounts                    accounts                     @relation(fields: [account_id], references: [id], onUpdate: NoAction)
+  categories                  categories?                  @relation(fields: [primary_category_id], references: [id], onUpdate: NoAction)
+  related_transaction         transactions?                @relation("transactions_hierarchy", fields: [related_transaction_id], references: [id], onUpdate: NoAction)
+  related_transactions        transactions[]               @relation("transactions_hierarchy")
+  tenants                     tenants                      @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tenant_id, provider, external_transaction_id], map: "transactions_external_unique_idx", where: raw("(external_transaction_id IS NOT NULL)"))
+  @@index([account_id], map: "transactions_account_idx")
+  @@index([tenant_id, operation_type], map: "transactions_operation_type_idx")
+  @@index([tenant_id, transaction_date], map: "transactions_tenant_date_idx")
+  @@index([tenant_id, reference_month], map: "transactions_tenant_reference_month_idx")
+}
+
+model transaction_classifications {
+  id                     String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id              String                  @db.Uuid
+  transaction_id         String                  @unique @db.Uuid
+  category_id            String?                 @db.Uuid
+  classified_by          String                  @default("DEFAULT")
+  confidence_score       Decimal?                @db.Decimal(5, 2)
+  status                 String                  @default("PENDING_REVIEW")
+  reasoning              String?
+  notes                  String?
+  created_at             DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime                @default(now()) @db.Timestamptz(6)
+  categories             categories?             @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+  tenants                tenants                 @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transactions           transactions            @relation(fields: [transaction_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  classification_reviews classification_reviews?
+
+  @@index([tenant_id, category_id], map: "transaction_classifications_category_idx")
+  @@index([tenant_id, status], map: "transaction_classifications_status_idx")
+  @@index([tenant_id], map: "transaction_classifications_tenant_idx")
+}
+
+model classification_reviews {
+  id                          String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id                   String                      @db.Uuid
+  classification_id           String                      @unique @db.Uuid
+  status                      String                      @default("CLAIMED")
+  external_message_id         String?
+  reply_message               String?
+  resolved_category_id        String?                     @db.Uuid
+  claimed_at                  DateTime                    @default(now()) @db.Timestamptz(6)
+  claim_expires_at            DateTime?                   @db.Timestamptz(6)
+  message_sent_at             DateTime?                   @db.Timestamptz(6)
+  resolved_at                 DateTime?                   @db.Timestamptz(6)
+  created_at                  DateTime                    @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime                    @default(now()) @db.Timestamptz(6)
+  categories                  categories?                 @relation(fields: [resolved_category_id], references: [id], onUpdate: NoAction)
+  tenants                     tenants                     @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transaction_classifications transaction_classifications @relation(fields: [classification_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tenant_id], map: "classification_reviews_active_tenant_unique_idx", where: raw("(status IN ('CLAIMED', 'WAITING_REPLY'))"))
+  @@unique([tenant_id, external_message_id], map: "classification_reviews_external_message_unique_idx", where: raw("(external_message_id IS NOT NULL)"))
+  @@index([tenant_id, status], map: "classification_reviews_tenant_status_idx")
+  @@index([tenant_id, created_at], map: "classification_reviews_tenant_created_idx")
+}

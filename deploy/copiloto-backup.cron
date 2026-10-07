@@ -1,0 +1,6 @@
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Backup diário às 03:15 no fuso configurado na VPS (America/Sao_Paulo).
+# flock impede a execução simultânea de dois backups.
+15 3 * * * root /usr/bin/flock -n /var/lock/copiloto-backup.lock /usr/bin/env COPILOTO_BACKUP_RETENTION_DAYS=14 /bin/sh /home/luiz/copiloto-financeiro-20260928/deploy/backup-postgres.sh >> /var/log/copiloto-backup.log 2>&1

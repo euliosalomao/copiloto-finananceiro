@@ -1,0 +1,70 @@
+version: "3.9"
+
+services:
+  backend:
+    image: ${COPILOTO_IMAGE}
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "3333"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DEFAULT_TENANT_ID: ${DEFAULT_TENANT_ID}
+      OPENAI_CLASSIFICATION_MODEL: ${OPENAI_CLASSIFICATION_MODEL:-gpt-4o-mini}
+      DATABASE_URL_FILE: /run/secrets/database_url
+      OPENAI_API_KEY_FILE: /run/secrets/openai_api_key
+      N8N_API_TOKEN_FILE: /run/secrets/n8n_api_token
+    secrets:
+      - database_url
+      - openai_api_key
+      - n8n_api_token
+    networks:
+      - proxy
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 45s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 768M
+        reservations:
+          cpus: "0.10"
+          memory: 128M
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=${COPILOTO_NETWORK_NAME:-proxy}
+        - traefik.http.routers.copiloto.rule=Host(`${COPILOTO_HOST}`)
+        - traefik.http.routers.copiloto.entrypoints=websecure
+        - traefik.http.routers.copiloto.tls=true
+        - traefik.http.routers.copiloto.tls.certresolver=${TRAEFIK_CERTRESOLVER}
+        - traefik.http.routers.copiloto.middlewares=copiloto-upload-limit
+        - traefik.http.middlewares.copiloto-upload-limit.buffering.maxRequestBodyBytes=6291456
+        - traefik.http.services.copiloto.loadbalancer.server.port=3333
+
+networks:
+  proxy:
+    external: true
+    name: ${COPILOTO_NETWORK_NAME:-proxy}
+
+secrets:
+  database_url:
+    external: true
+    name: copiloto_database_url_v1
+  openai_api_key:
+    external: true
+    name: copiloto_openai_api_key_v1
+  n8n_api_token:
+    external: true
+    name: copiloto_n8n_api_token_v1

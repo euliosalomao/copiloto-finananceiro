@@ -1,0 +1,13 @@
+ Extrato Conta Corrente 
+Conta ;000000000
+Período ;01/01/2026 a 01/09/2026
+Saldo ;1.234,56
+
+Data Lançamento;Histórico;Descrição;Valor;Saldo
+01/09/2026;Pix recebido;CLIENTE EXEMPLO;250,00;1.234,56
+31/08/2026;Pix enviado ;FORNECEDOR EXEMPLO;-50,00;984,56
+31/08/2026;Compra no débito;MERCADO EXEMPLO;-25,90;1.034,56
+30/08/2026;Pagamento efetuado;FATURA EXEMPLO;-100,00;1.060,46
+29/08/2026;Compra no débito;;-10,00;1.160,46
+28/08/2026;Compra no débito;COMPRA REPETIDA;-12,00;1.170,46
+28/08/2026;Compra no débito;COMPRA REPETIDA;-12,00;1.182,46

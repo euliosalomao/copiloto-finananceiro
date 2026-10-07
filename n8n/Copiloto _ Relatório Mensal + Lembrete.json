@@ -1,0 +1,316 @@
+{
+  "name": "Copiloto | Relatório Mensal + Lembrete copy",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "months",
+              "triggerAtDayOfMonth": 5,
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -752,
+        -16
+      ],
+      "id": "e8a38c84-a546-4d90-b10e-6027cb80a156",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7af784cf-e64f-45c8-940f-c5774dd0d942",
+              "name": "server_url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "0a0c6999-e5b0-4774-9644-e4d6a203e24d",
+              "name": "instance",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "f6706237-72bd-4f15-b9e7-469250e98aa6",
+              "name": "api_key",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -544,
+        -16
+      ],
+      "id": "bc9341ab-58ed-4d3b-9197-ed865a0e0238",
+      "name": "server&&api"
+    },
+    {
+      "parameters": {
+        "url": "=http://copiloto_backend:3333/report?month={{ $now.minus({ months: 1 }).month }}&year={{ $now.minus({ months: 1 }).year }}&accountId={acountId}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tenant-id"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -352,
+        -16
+      ],
+      "id": "0bdcd99e-7cde-43ba-b0d1-09dafe0b84b5",
+      "name": "getReport1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const {\n  period,\n  accountId,\n  report\n} = $input.first().json;\n\nconst {\n  summary,\n  expensesByCategory = [],\n  topExpenses = []\n} = report;\n\nconst {\n  income,\n  expenses,\n  balance,\n  transactionCount\n} = summary;\n\nfunction dinheiro(valor) {\n  return new Intl.NumberFormat(\"pt-BR\", {\n    style: \"currency\",\n    currency: \"BRL\"\n  }).format(valor);\n}\n\nfunction categoria(nome) {\n  if (!nome || nome === \"SEM_CATEGORIA\") {\n    return \"Sem categoria\";\n  }\n\n  return nome;\n}\n\nfunction dataBr(data) {\n  if (!data) return \"\";\n\n  const [ano, mes, dia] = data.split(\"-\");\n  return `${dia}/${mes}/${ano}`;\n}\n\nfunction descricao(texto) {\n  return texto\n    ?.replace(/\\s+/g, \" \")\n    .trim();\n}\n\n\n// -------------------------\n// CATEGORIAS\n// -------------------------\n\nconst categorias = expensesByCategory.map(item => {\n  return `${categoria(item.category)}: ${dinheiro(item.amount)}`;\n});\n\n\n// -------------------------\n// MAIORES GASTOS\n// -------------------------\n\nconst maioresGastos = topExpenses.map((item, index) => {\n  return [\n    `${index + 1}. ${descricao(item.description)}`,\n    `${dinheiro(item.amount)} — ${categoria(item.category)}`,\n    `${dataBr(item.date)}`\n  ].join(\"\\n\");\n});\n\n\n// -------------------------\n// MENSAGEM FINAL\n// -------------------------\n\nconst mensagem = [\n  `Relatório mensal — ${String(period.month).padStart(2, \"0\")}/${period.year}`,\n\n  ``,\n\n  `Resumo`,\n  `Entradas: ${dinheiro(income)}`,\n  `Saídas: ${dinheiro(expenses)}`,\n  `Saldo: ${dinheiro(balance)}`,\n  `Transações: ${transactionCount}`,\n\n  ``,\n\n  `Gastos por categoria`,\n  categorias.length\n    ? categorias.join(\"\\n\")\n    : \"Nenhum gasto por categoria.\",\n\n  ``,\n\n  `Maiores gastos`,\n  topExpenses.length\n    ? maioresGastos.join(\"\\n\\n\")\n    : \"Nenhum gasto encontrado.\"\n].join(\"\\n\");\n\n\nreturn [\n  {\n    json: {\n      period,\n      accountId,\n\n      resumo: {\n        entradas: income,\n        saidas: expenses,\n        saldo: balance,\n        transacoes: transactionCount\n      },\n\n      categorias: expensesByCategory.map(item => ({\n        categoria: categoria(item.category),\n        valor: item.amount\n      })),\n\n      maioresGastos: topExpenses.map(item => ({\n        descricao: descricao(item.description),\n        valor: item.amount,\n        data: dataBr(item.date),\n        categoria: categoria(item.category)\n      })),\n\n      mensagem\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        -16
+      ],
+      "id": "616868da-a102-42e2-987d-430a9565d531",
+      "name": "florearMensagem"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('server&&api').item.json.server_url }}/message/sendText/{{ $('server&&api').item.json.instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('server&&api').item.json.api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "="
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.mensagem }}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        32,
+        -16
+      ],
+      "id": "3feda13a-e194-4f51-82f6-876ef52287f1",
+      "name": "msg"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "months",
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -752,
+        224
+      ],
+      "id": "b597a658-8735-4f50-ac5b-09e316d55d2c",
+      "name": "Schedule Trigger1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7af784cf-e64f-45c8-940f-c5774dd0d942",
+              "name": "server_url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "0a0c6999-e5b0-4774-9644-e4d6a203e24d",
+              "name": "instance",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "f6706237-72bd-4f15-b9e7-469250e98aa6",
+              "name": "api_key",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -544,
+        224
+      ],
+      "id": "ce4d5e07-b333-4133-ba5d-2567deffd8ff",
+      "name": "server&&api1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('server&&api1').item.json.server_url }}/message/sendText/{{ $('server&&api1').item.json.instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('server&&api1').item.json.api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "="
+            },
+            {
+              "name": "text",
+              "value": "=📋 Ameaça de fim de mês\n\nEntra no inter e sobe o CSV seu preguiçoso se não vou derrubar o servidor."
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -352,
+        224
+      ],
+      "id": "e3fd2fd3-b886-411c-8fb0-11f70d9aa70c",
+      "name": "msg1"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "server&&api",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "server&&api": {
+      "main": [
+        [
+          {
+            "node": "getReport1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getReport1": {
+      "main": [
+        [
+          {
+            "node": "florearMensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "florearMensagem": {
+      "main": [
+        [
+          {
+            "node": "msg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "msg": {
+      "main": [
+        []
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "server&&api1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "server&&api1": {
+      "main": [
+        [
+          {
+            "node": "msg1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}

@@ -1,0 +1,2286 @@
+{
+  "name": "Copiloto | Intermédio de Classificações copy",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            },
+            {
+              "triggerAtHour": 18
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -368,
+        -48
+      ],
+      "id": "fa48153b-ea78-4e77-8c6f-af055053c8cf",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://copiloto_backend:3333/classification-reviews/next",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tenant-id"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        64,
+        -48
+      ],
+      "id": "38442503-84e0-4c80-bdc0-cbb2132d0a42",
+      "name": "claimNext"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7af784cf-e64f-45c8-940f-c5774dd0d942",
+              "name": "server_url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "0a0c6999-e5b0-4774-9644-e4d6a203e24d",
+              "name": "instance",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "f6706237-72bd-4f15-b9e7-469250e98aa6",
+              "name": "api_key",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -160,
+        -48
+      ],
+      "id": "1a0ca6ec-b82a-4d62-9c9d-d7106f52d3fb",
+      "name": "server&&api1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('server&&api1').item.json.server_url }}/message/sendText/{{ $('server&&api1').item.json.instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('server&&api1').item.json.api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "="
+            },
+            {
+              "name": "text",
+              "value": "=*Classifição De Transação*👁️👁️\n\n📝Description: {{ $('claimNext').item.json.review.transaction.description }}\n\n💰Valor: {{ $('claimNext').item.json.review.transaction.amount }}\n\n📆Data: {{ $('claimNext').item.json.review.transaction.transactionDate }}\n\n🤖Sugestão da IA: {{ $('claimNext').item.json.review.suggestion.categoryName }}\n\n🖊️Motivo: {{ $('claimNext').item.json.review.suggestion.reasoning }}\n\n✨Confidence: {{ $('claimNext').item.json.review.suggestion.confidence }}\n\nDeseja Confirmar Classificação?"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        528,
+        -48
+      ],
+      "id": "23118104-10ed-4c1e-b7e6-6f9fa0549bec",
+      "name": "mensagem"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://copiloto_backend:3333/classification-reviews/{{ $('claimNext').item.json.review.reviewId }}/message",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tenant-id"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "externalMessageId",
+              "value": "={{ $json.key.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        784,
+        -48
+      ],
+      "id": "35b8662c-ad13-43fa-adc6-9f126739aaf6",
+      "name": "patchReviewClassification"
+    },
+    {
+      "parameters": {
+        "content": "CLAIMED\n↓\nWAITING_REPLY",
+        "height": 224,
+        "width": 160
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        752,
+        -144
+      ],
+      "id": "ad219b18-6ab1-4cfc-950a-02260a543f83",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "82bde46e-0f1c-481d-a141-d7e12f9c6460",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -496,
+        464
+      ],
+      "id": "fd81606a-ab7d-4f2c-a623-5f2b6389481a",
+      "name": "WebhookEvo"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://copiloto_backend:3333/classification-reviews/reply",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tenant-id"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "quotedMessageId",
+              "value": "={{ $('Data Handler').item.json.quotedMessageId }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $('Combine Text').item.json.combinedText2 }}"
+            },
+            {
+              "name": "action",
+              "value": "={{ $('Action Detector').item.json.action }}"
+            },
+            {
+              "name": "createMerchantRule",
+              "value": "={{ $('Action Detector').item.json.createMerchantRule }}"
+            },
+            {
+              "name": "merchantRule",
+              "value": "={{ {\n  pattern: $('filterDescription').item.json.transactionDescription,\n  matchType: 'EXACT'\n} }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3568,
+        16
+      ],
+      "id": "8845c58d-5f91-43c6-b22b-c563273c60d5",
+      "name": "reply"
+    },
+    {
+      "parameters": {
+        "content": "quotedMessageId\n↓\nbusca review pelo external_message_id\n↓\ndescobre transaction\n↓\nACCEPT_SUGGESTION\nou\nCHANGE_CATEGORY\n↓\nconfirmClassificationForReview()\n↓\nclassification → CLASSIFIED\ntransaction.primary_category_id → atualizada\nreview → RESOLVED\n↓\nclaimNext()\n↓\nretorna próxima",
+        "height": 480,
+        "width": 640
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -896,
+        272
+      ],
+      "id": "27baf82b-7d46-4fe2-9c0b-df9d7b32b057",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "lock no tenant\n↓\njá tem WAITING_REPLY?\n→ não entrega outra\n\njá tem CLAIMED ainda válido?\n→ CLAIM_IN_PROGRESS\n\nCLAIMED expirou?\n→ reivindica a mesma\n\nnão existe ativa?\n↓\npega primeira:\nPENDING_REVIEW\nclassified_by = AI\ncategory_id != null\nsem review existente\n↓\ncria CLAIMED",
+        "height": 496,
+        "width": 640,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -896,
+        -224
+      ],
+      "id": "f579fa31-d172-4edc-b2b6-a45ba46fc000",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "fa3c5d3a-631a-463c-9a81-040ec7335cc3",
+              "leftValue": "={{ $json.queueState }}",
+              "rightValue": "READY",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        288,
+        -48
+      ],
+      "id": "e7fb1ca5-aff3-44cf-aa6f-bbd6a6f44343",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "002f8726-a1cb-419c-81b7-5aa7cd46180f",
+              "leftValue": "={{ $('Data Handler').item.json.data.fromMe }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        304,
+        464
+      ],
+      "id": "2eaab5a4-ad2b-4df5-9222-f4d325715aa6",
+      "name": "From Me"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a7753cd7-e1ce-44df-84cb-dfb95de93d42",
+              "leftValue": "={{ $('jidcorreto').item.json.remoteJid }}",
+              "rightValue": "SEU_NUMERO@s.whatsapp.net",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        544,
+        464
+      ],
+      "id": "f7850321-29b0-4ede-a40d-386f7c3232c8",
+      "name": "luiz?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "58baac00-9baf-438d-bfe6-739ea31c349a",
+              "name": "evo.server_url",
+              "value": "={{ $json.body.server_url }}",
+              "type": "string"
+            },
+            {
+              "id": "c3288898-4890-45e6-b8c2-719b467cc2b3",
+              "name": "quotedMessageId",
+              "value": "={{ $('WebhookEvo').item.json.body.data.contextInfo.stanzaId }}",
+              "type": "string"
+            },
+            {
+              "id": "97a92e9f-70a0-4e37-b10b-30d61f4fe9e5",
+              "name": "data.text",
+              "value": "={{ ($json.body.data.message.conversation ?? '').toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "713e0d21-8851-4167-9f07-9dffddd49505",
+              "name": "data.messageType",
+              "value": "={{ $json.body.data.messageType }}",
+              "type": "string"
+            },
+            {
+              "id": "a24fd771-225b-49a1-a84c-4f74f234c878",
+              "name": "evo.instance",
+              "value": "={{ $json.body.instance }}",
+              "type": "string"
+            },
+            {
+              "id": "17ef83c1-581c-4ead-be02-51c07860d60f",
+              "name": "data.source",
+              "value": "={{ $json.body.data.source }}",
+              "type": "string"
+            },
+            {
+              "id": "582c84eb-0936-4258-8afc-87726a352606",
+              "name": "evo.apikey",
+              "value": "={{ $json.body.apikey }}",
+              "type": "string"
+            },
+            {
+              "id": "78c2763e-193b-4f7a-a9a8-3e198acaf421",
+              "name": "data.mediaUrl",
+              "value": "={{ $json.body.data.message.mediaUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "7ad5c427-9314-421e-9394-302b0a3fd77f",
+              "name": "Data",
+              "value": "={{ $json.Data }}",
+              "type": "string"
+            },
+            {
+              "id": "19a01f1b-8218-4d4c-bd43-a887f1962167",
+              "name": "status",
+              "value": "={{ $json.body.data.status }}",
+              "type": "string"
+            },
+            {
+              "id": "37979741-bc94-4de2-b95f-748fd3089bf9",
+              "name": "data.name",
+              "value": "={{ $json.body.data.pushName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -304,
+        464
+      ],
+      "id": "8f4d9bc1-448c-49c1-849a-312f8f8631da",
+      "name": "Data Handler"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Referencia o node Webhook direto\nconst webhookData = $('WebhookEvo').first().json.body.data.key;\n\nconst remoteJid = webhookData.remoteJid || '';\nconst remoteJidAlt = webhookData.remoteJidAlt || '';\n\nconsole.log('remoteJid:', remoteJid);\nconsole.log('remoteJidAlt:', remoteJidAlt);\n\n// Função para validar e limpar o JID\nfunction getValidJid(jid) {\n  if (!jid || typeof jid !== 'string') return null;\n  \n  // Ignora @lid automaticamente\n  if (jid.includes('@lid')) return null;\n  \n  // Regex para formato correto: remove :45 e outros lixos\n  const match = jid.match(/^(\\d+)(?::\\d+)?(@s\\.whatsapp\\.net)$/);\n  \n  if (match) {\n    return match[1] + match[2];\n  }\n  \n  return null;\n}\n\n// Testa ambos\nconst validJid1 = getValidJid(remoteJid);\nconst validJid2 = getValidJid(remoteJidAlt);\n\n// Prioriza o primeiro válido\nlet cleanJid = validJid1 || validJid2;\n\n// Fallback: extrai só números se nenhum for válido\nif (!cleanJid && (remoteJid || remoteJidAlt)) {\n  // Só usa fallback em JIDs que NÃO sejam @lid\n  const fallback = [remoteJid, remoteJidAlt]\n    .find(j => j && !j.includes('@lid'));\n\n  if (fallback) {\n    const numbers = fallback.replace(/\\D/g, '');\n    if (numbers.length >= 10) {\n      cleanJid = `${numbers}@s.whatsapp.net`;\n    }\n  }\n}\n\n\nreturn {\n  remoteJid: cleanJid,\n  original_remoteJid: remoteJid,\n  original_remoteJidAlt: remoteJidAlt,\n  is_valid: !!cleanJid,\n  source: validJid1 ? 'remoteJid' : validJid2 ? 'remoteJidAlt' : 'fallback' // 👈\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -96,
+        464
+      ],
+      "id": "da929cb9-44da-42d5-97e3-2b1af40d5945",
+      "name": "jidcorreto"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://copiloto_backend:3333/classification-reviews/reply",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tenant-id"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "quotedMessageId",
+              "value": "={{ $('Data Handler').item.json.quotedMessageId }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $('Combine Text').item.json.combinedText2 }}"
+            },
+            {
+              "name": "action",
+              "value": "={{ $json.action }}"
+            },
+            {
+              "name": "categoryId",
+              "value": "={{ $json.categoryId }}"
+            },
+            {
+              "name": "createMerchantRule",
+              "value": "={{ $('Action Detector').item.json.createMerchantRule }}"
+            },
+            {
+              "name": "merchantRule",
+              "value": "={{ {\n  pattern: $('filterDescription').item.json.transactionDescription,\n  matchType: 'EXACT'\n} }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4160,
+        640
+      ],
+      "id": "0fbfb629-1c0b-4b6e-a65f-dcab0228d614",
+      "name": "reply1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Data Handler').item.json.data.messageType }}",
+                    "rightValue": "conversation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "76f1ca2d-c85f-45a8-a98c-adbf600d6e17"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0579292a-4af4-4f67-a6a5-f0b8eab1b1c9",
+                    "leftValue": "={{ $('Data Handler').item.json.data.messageType }}",
+                    "rightValue": "ephemeralMessage",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Web"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d10cd84d-3e8a-483d-b8fc-85fe377b6f44",
+                    "leftValue": "={{ $('Data Handler').item.json.data.messageType }}",
+                    "rightValue": "=audioMessage",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Audio"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        800,
+        432
+      ],
+      "id": "7328a20a-4354-47f3-91ba-f1ff910bf372",
+      "name": "Message Type"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "Message1",
+        "key": "={{ $('WebhookEvo').item.json.body.data.key.remoteJid }}COPILOT",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1664,
+        464
+      ],
+      "id": "efe98e57-ec95-4691-aab4-4e32411420f6",
+      "name": "Get Memory 1"
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1872,
+        464
+      ],
+      "id": "99c150f3-8f74-404c-b5ee-4643a3c3fadd",
+      "name": "Wait",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "Message2",
+        "key": "={{ $('WebhookEvo').item.json.body.data.key.remoteJid }}COPILOT",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2096,
+        464
+      ],
+      "id": "4d9c2d9c-cda3-405c-a69f-514ff448637f",
+      "name": "Get Memory 2"
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "={{ $('WebhookEvo').item.json.body.data.key.remoteJid }}COPILOT",
+        "messageData": "={{ $json.text }}",
+        "tail": true
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1504,
+        704
+      ],
+      "id": "ff82d983-680f-41c5-b00a-b39da4bd375d",
+      "name": "Audio Memory"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "binaryPropertyName": "base64",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1360,
+        704
+      ],
+      "id": "ce55a176-273b-44bf-b80f-ae8e68bc96c1",
+      "name": "OpenAI"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "base64",
+        "binaryPropertyName": "base64",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1216,
+        704
+      ],
+      "id": "406bc387-0d75-4c45-a37c-eaea7da4f9cf",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Data Handler').item.json.evo.server_url }}/chat/getBase64FromMediaMessage/{{ $('Data Handler').item.json.evo.instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apiKey",
+              "value": "={{ $('Data Handler').item.json.evo.apikey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": {\n    \"key\": {\n      \"remoteJid\": \"{{ $('jidcorreto').item.json.remoteJid }}\",\n      \"fromMe\": false,\n      \"id\": \"{{ $('Data Handler').item.json.data.id }}\"\n    }\n  },\n  \"convertToMp4\": true\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1072,
+        704
+      ],
+      "id": "63240da5-3148-4765-b85f-3a44bbb9a40d",
+      "name": "convert_b64"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtém os dados dos nodes anteriores\nconst message1Array = $('Get Memory 1').first().json.Message1;\nconst message2Array = $('Get Memory 2').first().json.Message2;\n\n// Verifica se as variáveis são arrays válidas e combina os elementos em strings\nconst combinedText1 = Array.isArray(message1Array) ? message1Array.join(' ') : '';\nconst combinedText2 = Array.isArray(message2Array) ? message2Array.join(' ') : '';\n\n// Retorna os valores combinados\nreturn {\n  combinedText1,\n  combinedText2,\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2304,
+        464
+      ],
+      "id": "c86d61e1-ba76-4905-aeff-2edb04c308b8",
+      "name": "Combine Text"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "87faaade-ed25-4265-bf10-622d8f16e115",
+              "leftValue": "={{ $json.combinedText1 }}",
+              "rightValue": "={{ $json.combinedText2 }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        2512,
+        464
+      ],
+      "id": "e31e6ad3-9c61-445d-b2bd-49a4d9e311e4",
+      "name": "Compare Memories"
+    },
+    {
+      "parameters": {
+        "content": "### Audio Message\n",
+        "height": 208,
+        "width": 608
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1040,
+        656
+      ],
+      "typeVersion": 1,
+      "id": "c44e843c-ffac-4cdd-9e4b-0095585b709d",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "={{ $('WebhookEvo').item.json.body.data.key.remoteJid }}COPILOT",
+        "messageData": "={{ $('Data Handler').item.json.data.text }}",
+        "tail": true
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        336
+      ],
+      "id": "743ee371-b502-42fd-bd66-2a3a021f3dca",
+      "name": "Text Memory"
+    },
+    {
+      "parameters": {
+        "url": "http://copiloto_backend:3333/categories",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tenant-id"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3328,
+        800
+      ],
+      "id": "39fbd6d6-b631-4dc1-915a-296e57eaf4e9",
+      "name": "Get Categories"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "DIRECT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "88a849a7-f0ca-4d73-b1f8-678595fc0348"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "DIRECT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "e331b20e-8ba3-4c11-b4c7-45aaf685022a",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "AI",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "AI"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        3744,
+        1152
+      ],
+      "id": "5d65a249-2735-4fd3-899c-ae24a9642220",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Você classifica mensagens em uma das categorias fornecidas.\n\nRegras:\n- Escolha apenas entre as categorias recebidas.\n- Nunca invente categoria ou id.\n- Se a mensagem indicar claramente uma categoria, retorne essa categoria.\n- Se não for possível determinar com segurança, retorne UNKNOWN.\n- Responda somente em JSON válido.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=Mensagem:\n{{$('filter').item.json.message}}\n\nCategorias:\n{{ JSON.stringify(\n  $('Get Categories').item.json.categories.map(c => ({\n    id: c.id,\n    name: c.name\n  }))\n) }}\n\nRetorne:\n{\n  \"action\": \"CHANGE_CATEGORY\" | |\"UNKNOWN\",\n  \"categoryId\": \"id da categoria\" | null\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        4144,
+        1152
+      ],
+      "id": "a88a7ea1-b964-4b70-a42b-48f77167aaf7",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://copiloto_backend:3333/classification-reviews/reply",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tenant-id"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "quotedMessageId",
+              "value": "={{ $('Data Handler').item.json.quotedMessageId }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $('Combine Text').item.json.combinedText2 }}"
+            },
+            {
+              "name": "action",
+              "value": "={{ $json.output.action }}"
+            },
+            {
+              "name": "categoryId",
+              "value": "={{ $json.output.categoryId }}"
+            },
+            {
+              "name": "createMerchantRule",
+              "value": "={{ $('Action Detector').item.json.createMerchantRule }}"
+            },
+            {
+              "name": "merchantRule",
+              "value": "={{ {\n  pattern: $('filterDescription').item.json.transactionDescription,\n  matchType: 'EXACT'\n} }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        5136,
+        1024
+      ],
+      "id": "d59a039b-65f5-4f7a-980b-e55d1cc1f77d",
+      "name": "reply2"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-nano",
+          "mode": "list",
+          "cachedResultName": "gpt-5-nano"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        4160,
+        1040
+      ],
+      "id": "3a3f6185-effb-4778-a5c1-31284b9e219d",
+      "name": "5nano"
+    },
+    {
+      "parameters": {
+        "jsCode": "const mensagem =\n  $('Action Detector').first().json.categoryMessage ?? '';\nconst categorias =\n  $('Get Categories').first().json.categories ?? [];\nconst merchantRule =\n  $('Action Detector').first().json.createMerchantRule;\n\nfunction normalizar(texto) {\n  return String(texto)\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '') // tira acentos\n    .toLowerCase()\n    .replace(/[^\\p{L}\\p{N}\\s]/gu, ' ') // tira pontuação\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nconst mensagemNormalizada = ` ${normalizar(mensagem)} `;\n\nconst encontradas = categorias.filter(categoria => {\n  const nome = normalizar(categoria.name);\n\n  return mensagemNormalizada.includes(` ${nome} `);\n});\n\n\n// Achou exatamente uma categoria:\n// não precisamos de IA.\nif (encontradas.length === 1) {\n  const categoria = encontradas[0];\n\n  return [\n    {\n      json: {\n        route: 'DIRECT',\n        message: mensagem,\n\n        action: 'CHANGE_CATEGORY',\n        categoryId: categoria.id,\n        categoryName: categoria.name,\n\n        createMerchantRule: merchantRule\n      }\n    }\n  ];\n}\n\n\n// Não achou nenhuma OU achou mais de uma:\n// deixa a IA interpretar.\nreturn [\n  {\n    json: {\n      route: 'AI',\n      message: mensagem,\n\n      matchedCategories: encontradas,\n\n      availableCategories: categorias.map(categoria => ({\n        id: categoria.id,\n        name: categoria.name,\n        type: categoria.category_type\n      }))\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3520,
+        800
+      ],
+      "id": "b2a83e26-7ceb-4876-957a-ba55345885f3",
+      "name": "filter"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"CHANGE_CATEGORY\", \"UNKNOWN\"]\n    },\n    \"categoryId\": {\n      \"type\": [\"string\", \"null\"]\n    }\n  },\n  \"required\": [\n    \"action\",\n    \"categoryId\"\n  ],\n  \"additionalProperties\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        4288,
+        1040
+      ],
+      "id": "659fa508-c31b-4f1f-8a16-aed3a651a596",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.first().json.output;\n\nconst categorias = $('Get Categories').first().json.categories;\n\nconst valido =\n  output.action === 'UNKNOWN' ||\n  categorias.some(c => c.id === output.categoryId);\n\nif (!valido) {\n  throw new Error('categoryId inválido retornado pela IA');\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4512,
+        1152
+      ],
+      "id": "735bd60f-8d76-4bea-8660-84c8abfc87ff",
+      "name": "validateSchema"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "CONFIRM",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "a566a303-dccd-408c-a613-0829b24cb444"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CONFIRM"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "b1ebe502-ac0c-4dd9-a5fa-2054a187c49c",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "CATEGORY",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CATEGORY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        3120,
+        464
+      ],
+      "id": "b9ad34ba-deec-4941-8a61-b165de5066c4",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const mensagemOriginal =\n  $('Combine Text').first().json.combinedText2 ?? '';\n\nfunction normalizar(texto) {\n  return String(texto)\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .toLowerCase()\n    .replace(/[^\\p{L}\\p{N}\\s]/gu, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nlet mensagem = normalizar(mensagemOriginal);\n\n\n// -------------------------\n// DETECTA MERCHANT RULE\n// -------------------------\n\nconst gatilhosRegra = [\n  'cria uma regra',\n  'criar uma regra',\n  'salva uma regra',\n  'salvar uma regra',\n  'da proxima vez',\n  'toda vez',\n  'cria regra',\n  'criar regra',\n  'salva regra',\n  'salvar regra',\n  'sempre',\n];\n\nconst createMerchantRule = gatilhosRegra.some(gatilho =>\n  mensagem.includes(gatilho)\n);\n\n\n// Remove o pedido de regra antes de interpretar\n// o restante da mensagem.\nfor (const gatilho of gatilhosRegra) {\n  mensagem = mensagem.replaceAll(gatilho, ' ');\n}\n\nmensagem = mensagem\n  .replace(/\\s+/g, ' ')\n  .trim();\n\n\n// -------------------------\n// DETECTA CONFIRMAÇÃO\n// -------------------------\n\nconst confirmacoes = new Set([\n  'sim',\n  's',\n  'si',\n  'ok',\n  'pode',\n  'uhum',\n  'ta certo',\n  'certo',\n  'correto',\n]);\n\nconst confirmou = confirmacoes.has(mensagem);\n\n\n// -------------------------\n// OUTPUT\n// -------------------------\n\nif (confirmou) {\n  return [\n    {\n      json: {\n        route: 'CONFIRM',\n\n        message: mensagemOriginal,\n\n        action: 'ACCEPT_SUGGESTION',\n\n        createMerchantRule,\n      }\n    }\n  ];\n}\n\n\n// Não é confirmação.\n// Desce para Get Categories.\nreturn [\n  {\n    json: {\n      route: 'CATEGORY',\n\n      message: mensagemOriginal,\n\n      // texto sem \"sempre\", \"cria regra\" etc.\n      // pro detector de categoria / IA.\n      categoryMessage: mensagem,\n\n      createMerchantRule,\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2912,
+        464
+      ],
+      "id": "4f8d1863-e3a2-4a94-b88e-4f521c52d2f0",
+      "name": "Action Detector"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3519f955-7178-4ddc-9a60-f13c8706dc2f",
+              "leftValue": "={{ $json.output.action }}",
+              "rightValue": "CHANGE_CATEGORY",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4720,
+        1152
+      ],
+      "id": "2873a016-eb32-4aba-b886-f1c9f5b8f9b5",
+      "name": "!=UNKNOWN"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('server&&api').item.json.server_url }}/message/sendText/{{ $('server&&api').item.json.instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('server&&api').item.json.api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "="
+            },
+            {
+              "name": "text",
+              "value": "=*Classifição De Transação*👁️👁️\n\n📝Description: {{ $('Normalize Reply').item.json.nextDescription }}\n\n💰Valor: {{ $('Normalize Reply').item.json.nextAmount }}\n\n📆Data: {{ $('Normalize Reply').item.json.nextTransactionDate }}\n\n🤖Sugestão da IA: {{ $('Normalize Reply').item.json.nextCategory }}\n\n🖊️Motivo: {{ $('Normalize Reply').item.json.nextReasoning }}\n\n✨Confidence: {{ $('Normalize Reply').item.json.nextConfidence }}\n\nDeseja Confirmar Classificação?"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6336,
+        464
+      ],
+      "id": "bef61b5d-149d-4ad4-9a32-d48801e46e01",
+      "name": "mensagem1"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://copiloto_backend:3333/classification-reviews/{{ $('Normalize Reply').item.json.nextReviewId }}/message",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tenant-id"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "externalMessageId",
+              "value": "={{ $json.key.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        6592,
+        464
+      ],
+      "id": "b7f1c761-93ca-4d17-8fa3-e93bed8afd37",
+      "name": "patchReviewClassification1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7af784cf-e64f-45c8-940f-c5774dd0d942",
+              "name": "server_url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "0a0c6999-e5b0-4774-9644-e4d6a203e24d",
+              "name": "instance",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "f6706237-72bd-4f15-b9e7-469250e98aa6",
+              "name": "api_key",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        6064,
+        464
+      ],
+      "id": "cdfbf0ce-7c1b-4afc-b45b-7264e16205b9",
+      "name": "server&&api"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e46c869a-7d4a-4299-b7a6-5094cab441c5",
+              "leftValue": "={{ $('Normalize Reply').item.json.hasNext.toBoolean() }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        5808,
+        480
+      ],
+      "id": "647a06c1-88d6-467e-bd7a-c3372de9957d",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "07abdae9-1881-4346-9059-49533623592c",
+              "name": "queueState",
+              "value": "={{ $json.queueState }}",
+              "type": "string"
+            },
+            {
+              "id": "9dd638eb-c012-4676-891e-545c99c805ba",
+              "name": "hasNext",
+              "value": "={{ $json.queueState === 'READY' && $json.next !== null }}",
+              "type": "string"
+            },
+            {
+              "id": "eef3bbef-4333-4adc-ae21-ea4834343618",
+              "name": "=nextReviewId",
+              "value": "={{ $json.next?.reviewId }}",
+              "type": "string"
+            },
+            {
+              "id": "5f9f93a4-4b69-4e85-90d8-dcd3b1bebfd5",
+              "name": "nextDescription",
+              "value": "={{ $json.next?.transaction?.description }}",
+              "type": "string"
+            },
+            {
+              "id": "477799ec-9619-49c8-852d-969226a2d5ec",
+              "name": "nextAmount",
+              "value": "={{ $json.next?.transaction?.amount }}",
+              "type": "string"
+            },
+            {
+              "id": "16bc3dbf-c498-4eb2-a13c-f44ee68a3b44",
+              "name": "nextCategory",
+              "value": "={{ $json.next?.suggestion?.categoryName }}",
+              "type": "string"
+            },
+            {
+              "id": "6d06b3fe-118a-481e-9598-bdd6b0f2bf2a",
+              "name": "nextTransactionDate",
+              "value": "={{ $json.next?.transaction?.transactionDate }}",
+              "type": "string"
+            },
+            {
+              "id": "16da8428-23c4-4b4c-898d-71afa6c87eb0",
+              "name": "nextReasoning",
+              "value": "={{ $json.next?.suggestion?.reasoning }}",
+              "type": "string"
+            },
+            {
+              "id": "31626fc8-ae25-4dbd-b333-26dc5f96298a",
+              "name": "nextConfidence",
+              "value": "={{ $json.next?.suggestion?.confidence }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        5392,
+        480
+      ],
+      "id": "657e3e2a-1712-42d3-9a57-20082cf32e45",
+      "name": "Normalize Reply"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ $('WebhookEvo').item.json.body.data.key.remoteJid }}COPILOT"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        5600,
+        480
+      ],
+      "id": "d8faeb87-cc41-4f4f-a4eb-c7bfaf0b1536",
+      "name": "delete"
+    },
+    {
+      "parameters": {
+        "jsCode": "const quotedMessage =\n  $('WebhookEvo').first().json.body.data.contextInfo\n    ?.quotedMessage?.conversation ?? '';\n\nconst match =\n  quotedMessage.match(/📝Description:\\s*(.+?)(?:\\n|$)/);\n\nconst transactionDescription =\n  match?.[1]?.trim() ?? null;\n\nreturn [{\n  json: {\n    transactionDescription\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2704,
+        464
+      ],
+      "id": "423b173d-433f-459c-b0bc-85d4117112c7",
+      "name": "filterDescription"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://copiloto_backend:3333/classification-reviews/reply",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tenant-id"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "quotedMessageId",
+              "value": "={{ $('Data Handler').item.json.quotedMessageId }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $('Combine Text').item.json.combinedText2 }}"
+            },
+            {
+              "name": "action",
+              "value": "={{ $('Action Detector').item.json.action }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3568,
+        176
+      ],
+      "id": "f94d9053-ac85-4767-ad18-1906a6597ed9",
+      "name": "reply3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "de460098-94de-4b38-94d4-5d51410991f9",
+              "leftValue": "={{ $('Action Detector').item.json.createMerchantRule }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3904,
+        752
+      ],
+      "id": "1d3ace54-b7b4-4cd1-9508-1877050b9f10",
+      "name": "createMerchantRule?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "de460098-94de-4b38-94d4-5d51410991f9",
+              "leftValue": "={{ $('Action Detector').item.json.createMerchantRule }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3360,
+        112
+      ],
+      "id": "2d9034e7-dd4c-4098-aba8-cb1ca571edbf",
+      "name": "createMerchantRule?1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://copiloto_backend:3333/classification-reviews/reply",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tenant-id"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "quotedMessageId",
+              "value": "={{ $('Data Handler').item.json.quotedMessageId }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $('Combine Text').item.json.combinedText2 }}"
+            },
+            {
+              "name": "action",
+              "value": "={{ $json.action }}"
+            },
+            {
+              "name": "categoryId",
+              "value": "={{ $json.categoryId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4160,
+        816
+      ],
+      "id": "5fbadfb3-f57d-4568-9b69-8e593cbe225a",
+      "name": "reply4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "de460098-94de-4b38-94d4-5d51410991f9",
+              "leftValue": "={{ $('Action Detector').item.json.createMerchantRule }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4944,
+        1152
+      ],
+      "id": "0808a52a-f089-4494-9e2f-6a117e913bf7",
+      "name": "createMerchantRule?2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://copiloto_backend:3333/classification-reviews/reply",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-tenant-id"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "quotedMessageId",
+              "value": "={{ $('Data Handler').item.json.quotedMessageId }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $('Combine Text').item.json.combinedText2 }}"
+            },
+            {
+              "name": "action",
+              "value": "={{ $json.output.action }}"
+            },
+            {
+              "name": "categoryId",
+              "value": "={{ $json.output.categoryId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        5136,
+        1232
+      ],
+      "id": "fc9e3cb9-629a-4c29-a20a-766a286cbbc7",
+      "name": "reply5"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "002f8726-a1cb-419c-81b7-5aa7cd46180f",
+              "leftValue": "={{ $('Data Handler').item.json.quotedMessageId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        80,
+        464
+      ],
+      "id": "c07582ad-373f-462f-8c70-31cdebb20ee3",
+      "name": "replyMessage?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('server&&api').item.json.server_url }}/message/sendText/{{ $('server&&api').item.json.instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('server&&api').item.json.api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "="
+            },
+            {
+              "name": "text",
+              "value": "=Referêncie a mensagem que você está respondendo para o sistema identificar qual transação você está classificando"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        304
+      ],
+      "id": "c220aba5-c2c2-4118-8d1c-10ee7071c044",
+      "name": "mensagem2"
+    }
+  ],
+  "connections": {
+    "server&&api1": {
+      "main": [
+        [
+          {
+            "node": "claimNext",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WebhookEvo": {
+      "main": [
+        [
+          {
+            "node": "Data Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "server&&api1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "claimNext": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mensagem": {
+      "main": [
+        [
+          {
+            "node": "patchReviewClassification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "luiz?": {
+      "main": [
+        [
+          {
+            "node": "Message Type",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Data Handler": {
+      "main": [
+        [
+          {
+            "node": "jidcorreto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "jidcorreto": {
+      "main": [
+        [
+          {
+            "node": "replyMessage?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "From Me": {
+      "main": [
+        [
+          {
+            "node": "luiz?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Message Type": {
+      "main": [
+        [
+          {
+            "node": "Text Memory",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Text Memory",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "convert_b64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Memory 1": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Get Memory 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Memory 2": {
+      "main": [
+        [
+          {
+            "node": "Combine Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audio Memory": {
+      "main": [
+        [
+          {
+            "node": "Get Memory 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Audio Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "convert_b64": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Text": {
+      "main": [
+        [
+          {
+            "node": "Compare Memories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Memory": {
+      "main": [
+        [
+          {
+            "node": "Get Memory 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compare Memories": {
+      "main": [
+        [
+          {
+            "node": "filterDescription",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Categories": {
+      "main": [
+        [
+          {
+            "node": "filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "createMerchantRule?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "validateSchema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5nano": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "filter": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "validateSchema": {
+      "main": [
+        [
+          {
+            "node": "!=UNKNOWN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "reply2": {
+      "main": [
+        [
+          {
+            "node": "Normalize Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "reply1": {
+      "main": [
+        [
+          {
+            "node": "Normalize Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "reply": {
+      "main": [
+        [
+          {
+            "node": "Normalize Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "createMerchantRule?1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Categories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Action Detector": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "!=UNKNOWN": {
+      "main": [
+        [
+          {
+            "node": "createMerchantRule?2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mensagem1": {
+      "main": [
+        [
+          {
+            "node": "patchReviewClassification1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "server&&api": {
+      "main": [
+        [
+          {
+            "node": "mensagem1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "server&&api",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Reply": {
+      "main": [
+        [
+          {
+            "node": "delete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "delete": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "filterDescription": {
+      "main": [
+        [
+          {
+            "node": "Action Detector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "reply3": {
+      "main": [
+        [
+          {
+            "node": "Normalize Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "createMerchantRule?1": {
+      "main": [
+        [
+          {
+            "node": "reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "reply3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "createMerchantRule?": {
+      "main": [
+        [
+          {
+            "node": "reply1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "reply4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "reply4": {
+      "main": [
+        [
+          {
+            "node": "Normalize Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "createMerchantRule?2": {
+      "main": [
+        [
+          {
+            "node": "reply2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "reply5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "reply5": {
+      "main": [
+        [
+          {
+            "node": "Normalize Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "replyMessage?": {
+      "main": [
+        [
+          {
+            "node": "mensagem2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "From Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}
